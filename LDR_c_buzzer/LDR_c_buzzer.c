@@ -54,61 +54,68 @@ int adc_value = 0;// ADCから読み取った値を格納する変数
 bool timer_callback(struct repeating_timer *rt)
 {
     if( gpio_get(BUTTON_PIN) == 0 ){    
-        Current_BUTTON_State = true;    
+        Current_BUTTON_State = true;    //LOWになったらボタンが押された
     } else {
-        Current_BUTTON_State = false; 
+        Current_BUTTON_State = false;   //HIGHになったらボタンが離された
     }
 
-    if(Current_BUTTON_State == Prev_BUTTON_State){          //ボタンの状態が前回と一致しているか
-        if(count < 3){                                      //3回連続で同じ状態ならば
-            count++;                                        //カウントをインクリメント
+    if(Current_BUTTON_State == Prev_BUTTON_State){      //ボタンの状態が前回と一致しているか
+        if(count < 3){                                  //3回連続で同じ状態ならば
+            count++;                                    //カウントをインクリメント
         }                                        
         if(count >= 3){                                 //3回以上同じ状態ならば    
             button_pressed = Current_BUTTON_State;      //ボタンの状態を確定させる 
         }
     }else{
-        count = 0;//状態が変化したらカウントを0クリア
+        count = 0;                                      //状態が変化したらカウントを0クリア
     }
 
     Prev_BUTTON_State = Current_BUTTON_State; // 前回の状態を更新
-    
+
     return true; // 継続してタイマーを動作させる
 }
 
 int command_light(){
+    adc_select_input(0); // ADCの入力チャネルを0 (GP26) に設定
     return adc_read(); // ADCチャネルからの読み取り値を返す
 }
 
-// ADC値をデューティサイクルに変換する関数
-float convert_to_duty(){
-    if(adc_value <= 400){       
-        return 1.0f;
-    } else if(adc_value <= 800){
-        return 0.9f;
-    } else if(adc_value <= 1200){
-        return 0.8f;
-    } else if(adc_value <= 1600){
-        return 0.7f;
-    } else if(adc_value <= 2000){
-        return 0.6f;
-    } else if(adc_value <= 2400){
-        return 0.5f;
-    } else if(adc_value <= 2800){
-        return 0.4f;
-    } else if(adc_value <= 3200){
-        return 0.3f;
-    } else if(adc_value <= 3600){
-        return 0.2f;
-    } else{
-        return 0.1f; //3601以上は100%
-    }
-}
+// AD値をデューティサイクルに変換する関数
+typedef struct{
+    unsigned short ad_std;
+    float duty_std;
+}CONVERT_TO_DUTY;
 
+const CONVERT_TO_DUTY ad_duty[] = {
+    {400,1.0},
+    {800,0.9},
+    {1200,0.8},
+    {1600,0.7},
+    {2000,0.6},
+    {2400,0.5},
+    {2800,0.4},
+    {3200,0.3},
+    {3600,0.2}
+};
+
+float duty = 0.0;
 float Save_duty(){
-    adc_value = command_light();
-    float duty = convert_to_duty(); // ADC値をデューティ比に変換
+    adc_value = command_light();    // AD値を取得
+    int i = 0;
+    while(1){
+        if (adc_value <= ad_duty[i].ad_std) {   
+            duty = ad_duty[i].duty_std;
+            break;
+        }else if(adc_value > 3600){
+            duty = 0.1;
+            break;
+        }else{
+            i++;
+        }
+    }
     return duty;
 }
+    
 
 int main()
 {
@@ -168,8 +175,7 @@ int main()
     {
         if (button_pressed)
         {
-            adc_select_input(0); // ADCの入力チャネルを0 (GP26) に設定
-            float duty = Save_duty(); // ADC値を読み取り、デューティ比を取得
+            float duty = Save_duty(); // AD値を読み取り、デューティ比を取得
             play_note_a(slice_num,duty);
         }
         else
