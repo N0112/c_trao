@@ -21,7 +21,7 @@ bool Current_BUTTON_State;   // 現在のボタンの状態を格納する変数
 bool Prev_BUTTON_State; // 前回のボタンの状態を格納する変数
 
 // BUZZERのデューティサイクルの定義
-#define BUZZER_OFF 0  // ブザーOFFのデューティサイクル（0%）
+#define BUZZER_OFF 1.0 // 常にHigh → 鳴らない
 
 // ラの音（A3）を再生する関数
 // 引数: slice_num - PWMスライス番号(PWM機能を構成する独立した信号生成ユニット)
