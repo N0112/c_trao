@@ -53,18 +53,25 @@ int adc_value = 0;// ADCから読み取った値を格納する変数
 // タイマー割り込み関数
 bool timer_callback(struct repeating_timer *rt)
 {
-    Current_BUTTON_State = gpio_get(BUTTON_PIN);            //現在のボタンの状態を取得
+    if( gpio_get(BUTTON_PIN) == 0 ){    
+        Current_BUTTON_State = true;    
+    } else {
+        Current_BUTTON_State = false; 
+    }
+
     if(Current_BUTTON_State == Prev_BUTTON_State){          //ボタンの状態が前回と一致しているか
         if(count < 3){                                      //3回連続で同じ状態ならば
             count++;                                        //カウントをインクリメント
         }                                        
         if(count >= 3){                                 //3回以上同じ状態ならば    
-            button_pressed = (Current_BUTTON_State == 0);      //ボタンの状態を確定させる 
+            button_pressed = Current_BUTTON_State;      //ボタンの状態を確定させる 
         }
     }else{
         count = 0;//状態が変化したらカウントを0クリア
     }
+
     Prev_BUTTON_State = Current_BUTTON_State; // 前回の状態を更新
+    
     return true; // 継続してタイマーを動作させる
 }
 
